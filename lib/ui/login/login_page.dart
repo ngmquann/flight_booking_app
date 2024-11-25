@@ -1,5 +1,6 @@
 import 'package:flight_booking_app/data/model/login_request.dart';
 import 'package:flight_booking_app/data/model/login_token.dart';
+import 'package:flight_booking_app/data/repository/token_repository.dart';
 import 'package:flight_booking_app/ui/home/home.dart';
 import 'package:flight_booking_app/ui/login/login_view_model.dart';
 import 'package:flight_booking_app/ui/login/sign_up_page.dart';
@@ -12,6 +13,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginPage> {
+  TokenRepository tokenRepository = TokenRepository();
   final _formKey = GlobalKey<FormState>();
 
   final _emailController = TextEditingController();
@@ -46,7 +48,7 @@ class _LoginScreenState extends State<LoginPage> {
         if (token != null) {
           var saveToken = token.token.toString();
 
-          // await tokenRepository.saveToken(saveToken);
+           await tokenRepository.saveToken(saveToken);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => HomeScreen()),

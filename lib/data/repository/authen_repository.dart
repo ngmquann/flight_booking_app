@@ -14,7 +14,7 @@ abstract class AuthenRepository {
 class AuthenRepoImpl implements AuthenRepository {
   @override
   Future<LoginToken?> signin(LoginRequest loginRequest) async {
-    const url = 'http://10.0.2.2:8080/api/auth/login';
+    const url = 'http://10.0.2.2:8081/api/auth/login';
     final uri = Uri.parse(url);
     final response = await http.post(
       uri,
@@ -35,7 +35,7 @@ class AuthenRepoImpl implements AuthenRepository {
 
   @override
   Future<String?> signup(SignUp signUp) async {
-    const url = 'http://10.0.2.2:8080/api/auth/signup';
+    const url = 'http://10.0.2.2:8081/api/auth/signup';
     final uri = Uri.parse(url);
 
     final response = await http.post(
