@@ -1,13 +1,27 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flight_booking_app/data/model/info_booking_response.dart';
+import 'package:flight_booking_app/data/model/ticket_request.dart';
+import 'package:flight_booking_app/data/repository/token_repository.dart';
 import 'package:flight_booking_app/ui/booking/booking_view_model.dart';
+import 'package:flight_booking_app/ui/booking/transaction_success.dart';
+import 'package:flight_booking_app/ui/vnpay_checkout_view/payment_service.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 class BookingPage extends StatefulWidget {
   int id;
   String seatClass;
   double price;
-  BookingPage({required this.id, required this.seatClass, required this.price, super.key});
+  BookingPage({
+    required this.id,
+    required this.seatClass,
+    required this.price,
+    super.key,
+  });
 
   @override
   State<BookingPage> createState() => _BookingPageState();
@@ -21,6 +35,8 @@ class _BookingPageState extends State<BookingPage> {
 
   String? seatId;
   String? luggageId;
+  double priceLuggage = 0;
+  String _selectedPaymentMethod = "";
 
   late Future<InfoBookingResponse?> _info;
 
@@ -32,6 +48,8 @@ class _BookingPageState extends State<BookingPage> {
 
   @override
   Widget build(BuildContext context) {
+    TokenRepository tokenRepository = TokenRepository();
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xff1A94FF),
@@ -45,7 +63,7 @@ class _BookingPageState extends State<BookingPage> {
       backgroundColor: const Color(0xffF5F5FA),
       body: FutureBuilder<InfoBookingResponse?>(
         future: _info,
-        builder: (context, snapshot){
+        builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
@@ -56,195 +74,255 @@ class _BookingPageState extends State<BookingPage> {
             var listSeat = snapshot.data!.seatList;
             var listLuggage = snapshot.data!.luggageList;
 
-            return Form(
-              key: _formKey,
-              child: Container(
-                margin: const EdgeInsets.all(20.0),
-                padding: const EdgeInsets.all(12.0),
-                height: 400,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.0),
-                    color: Colors.white,
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        spreadRadius: 5,
+            return SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Container(
+                  margin: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(12.0),
+                  height: 510,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.0),
+                      color: Colors.white,
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          spreadRadius: 5,
+                        ),
+                      ]),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          labelText: "Name",
+                          labelStyle: const TextStyle(
+                              color: Colors.black, fontSize: 18),
+                          hintStyle: const TextStyle(color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xffF5F5FA),
+                              width: 1.0,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xff5e5959),
+                              width: 2.0,
+                            ),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your name';
+                          }
+                          return null;
+                        },
                       ),
-                    ]),
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: "Name",
-                        labelStyle:
-                        const TextStyle(color: Colors.black, fontSize: 18),
-                        hintStyle: const TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xffF5F5FA),
-                            width: 1.0,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xff5e5959),
-                            width: 2.0,
-                          ),
-                        ),
+                      const SizedBox(
+                        height: 10.0,
                       ),
-                    ),
-                    const SizedBox(
-                      height: 10.0,
-                    ),
-                    TextFormField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: "Email",
-                        labelStyle:
-                        const TextStyle(color: Colors.black, fontSize: 18),
-                        hintStyle: const TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xffF5F5FA),
-                            width: 1.0,
+                      TextFormField(
+                        controller: emailController,
+                        decoration: InputDecoration(
+                          labelText: "Email",
+                          labelStyle: const TextStyle(
+                              color: Colors.black, fontSize: 18),
+                          hintStyle: const TextStyle(color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xffF5F5FA),
+                              width: 1.0,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xff5e5959),
+                              width: 2.0,
+                            ),
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xff5e5959),
-                            width: 2.0,
-                          ),
-                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          return null;
+                        },
                       ),
-                    ),
-                    const SizedBox(
-                      height: 10.0,
-                    ),
-                    TextFormField(
-                      controller: phoneController,
-                      decoration: InputDecoration(
-                        labelText: "Phone number",
-                        labelStyle: const TextStyle(color: Colors.black, fontSize: 18),
-                        hintStyle: const TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xffF5F5FA),
-                            width: 1.0,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xff5e5959),
-                            width: 2.0,
-                          ),
-                        ),
+                      const SizedBox(
+                        height: 10.0,
                       ),
-                    ),
-                    const SizedBox(
-                      height: 10.0,
-                    ),
-                    DropdownButtonFormField<String>(
-                      value: seatId,
-                      decoration: InputDecoration(
-                        labelText: 'Seat number',
-                        labelStyle: const TextStyle(color: Colors.black, fontSize: 18),
-                        hintText: 'Select Gender',
-                        hintStyle: const TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xffF5F5FA),
-                            width: 1.0,
+                      TextFormField(
+                        controller: phoneController,
+                        decoration: InputDecoration(
+                          labelText: "Phone number",
+                          labelStyle: const TextStyle(
+                              color: Colors.black, fontSize: 18),
+                          hintStyle: const TextStyle(color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xffF5F5FA),
+                              width: 1.0,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xff5e5959),
+                              width: 2.0,
+                            ),
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xff5e5959),
-                            width: 2.0,
-                          ),
-                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your phone number';
+                          }
+                          return null;
+                        },
                       ),
-                      style: const TextStyle(color: Colors.black),
-                      dropdownColor: Colors.white,
-                      items: listSeat.map<DropdownMenuItem<String>>(
-                              (value) {
-                            return DropdownMenuItem<String>(
-                              value: value.id.toString(),
-                              child: Text(value.seatNumber),
-                            );
-                          }).toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          seatId = value!;
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select your seat';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(
-                      height: 10.0,
-                    ),
-                    DropdownButtonFormField<String>(
-                      value: luggageId,
-                      decoration: InputDecoration(
-                        labelText: 'Luggage',
-                        labelStyle: const TextStyle(color: Colors.black, fontSize: 18),
-                        hintText: 'Luggage',
-                        hintStyle: const TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xffF5F5FA),
-                            width: 1.0,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xff5e5959),
-                            width: 2.0,
-                          ),
-                        ),
+                      const SizedBox(
+                        height: 10.0,
                       ),
-                      style: const TextStyle(color: Colors.black),
-                      dropdownColor: Colors.white,
-                      items: listLuggage.map<DropdownMenuItem<String>>(
-                              (value) {
-                            return DropdownMenuItem<String>(
-                              value: value.id.toString(),
-                              child: Text("${value.weight} kg - ${NumberFormat('#,###', 'vi_VN').format(value.price)}VND"),
-                            );
-                          }).toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          luggageId = value!;
-                        });
-                      },
-                    ),
-                  ],
+                      DropdownButtonFormField<String>(
+                        value: seatId,
+                        decoration: InputDecoration(
+                          labelText: 'Seat number',
+                          labelStyle: const TextStyle(
+                              color: Colors.black, fontSize: 18),
+                          hintText: 'Select Gender',
+                          hintStyle: const TextStyle(color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xffF5F5FA),
+                              width: 1.0,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xff5e5959),
+                              width: 2.0,
+                            ),
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.black),
+                        dropdownColor: Colors.white,
+                        items: listSeat.map<DropdownMenuItem<String>>((value) {
+                          return DropdownMenuItem<String>(
+                            value: value.id.toString(),
+                            child: Text(value.seatNumber),
+                          );
+                        }).toList(),
+                        onChanged: (String? value) {
+                          setState(() {
+                            seatId = value!;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select your seat';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(
+                        height: 10.0,
+                      ),
+                      DropdownButtonFormField<String>(
+                        value: luggageId,
+                        decoration: InputDecoration(
+                          labelText: 'Luggage',
+                          labelStyle: const TextStyle(
+                              color: Colors.black, fontSize: 18),
+                          hintText: 'Luggage',
+                          hintStyle: const TextStyle(color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xffF5F5FA),
+                              width: 1.0,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xff5e5959),
+                              width: 2.0,
+                            ),
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.black),
+                        dropdownColor: Colors.white,
+                        items:
+                            listLuggage.map<DropdownMenuItem<String>>((value) {
+                          return DropdownMenuItem<String>(
+                            value: value.id.toString(),
+                            child: Text(
+                                "${value.weight} kg - ${NumberFormat('#,###', 'vi_VN').format(value.price)}VND"),
+                          );
+                        }).toList(),
+                        onChanged: (String? value) {
+                          final selectedLuggage = listLuggage.firstWhere(
+                            (lug) => lug.id.toString() == value,
+                            orElse: () => listLuggage.first,
+                          );
+                          setState(() {
+                            luggageId = value!;
+                            priceLuggage = selectedLuggage.price;
+                          });
+                        },
+                      ),
+                      const SizedBox(
+                        height: 10.0,
+                      ),
+                      const Divider(),
+                      const Text(
+                        "Payment Information",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w500, color: Colors.black),
+                      ),
+                      RadioListTile(
+                        title: Row(
+                          children: [
+                            Image.asset(
+                              'assets/images/Icon-VNPAY-QR.jpg',
+                              width: 30,
+                              height: 30,
+                            ),
+                            const SizedBox(width: 10),
+                            const Text(
+                              "VNPAY",
+                              style: TextStyle(color: Colors.black),
+                            ),
+                          ],
+                        ),
+                        value: "VNPAY",
+                        groupValue: _selectedPaymentMethod,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedPaymentMethod = value.toString();
+                          });
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -267,12 +345,12 @@ class _BookingPageState extends State<BookingPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  const Text(
                     "Total price",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Text(
-                    "${NumberFormat('#,###', 'vi_VN').format(widget.price)} đ",
+                    "${NumberFormat('#,###', 'vi_VN').format(widget.price + priceLuggage)} đ",
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -288,7 +366,76 @@ class _BookingPageState extends State<BookingPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    print(seatId);
+                    if (!_formKey.currentState!.validate()) {
+                      return;
+                    }
+
+                    if (_selectedPaymentMethod.isEmpty ||
+                        _selectedPaymentMethod == "") {
+                      Fluttertoast.showToast(
+                        msg: "Please select payment method",
+                        toastLength: Toast.LENGTH_LONG,
+                        gravity: ToastGravity.TOP,
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        fontSize: 18.0,
+                      );
+                    }
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (BuildContext context) => PaymentService(
+                        ticketRequest: TicketRequest(
+                          seatId: int.parse(seatId!),
+                          flightId: widget.id,
+                          luggageId: luggageId == null ? null : int.parse(luggageId!),
+                          name: nameController.text,
+                          phone: phoneController.text,
+                          email: emailController.text,
+                        ),
+                        onSuccess: (Map params) async {
+                          try {
+                            var token = await tokenRepository.getToken();
+                            final response = await http.get(
+                              Uri.parse(params['url']),
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer $token'
+                              },
+                            );
+
+                            if (response.statusCode == 200) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => TransactionSuccessPage()
+                                ),
+                              );
+                            } else {
+                              // Xử lý lỗi khi gọi API xác nhận thanh toán
+                              Fluttertoast.showToast(
+                                msg: "Thanh toán không thành công",
+                                toastLength: Toast.LENGTH_LONG,
+                                backgroundColor: Colors.red,
+                              );
+                            }
+                          } catch (e) {
+                            print('Error confirming payment: $e');
+                            Fluttertoast.showToast(
+                              msg: "Có lỗi xảy ra",
+                              toastLength: Toast.LENGTH_LONG,
+                              backgroundColor: Colors.red,
+                            );
+                          }
+                        },
+                        onError: (error) {
+                          log("onError: $error");
+                          Navigator.pop(context);
+                        },
+                        onCancel: () {
+                          print('cancelled:');
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ));
                   },
                   style: ButtonStyle(
                     shape: MaterialStateProperty.all<RoundedRectangleBorder>(

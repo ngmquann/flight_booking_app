@@ -49,9 +49,12 @@ class _LoginScreenState extends State<LoginPage> {
           var saveToken = token.token.toString();
 
            await tokenRepository.saveToken(saveToken);
+
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => HomeScreen()),
+            MaterialPageRoute(
+                builder: (context) => const HomeScreen()
+            ),
           );
         }
       } catch (e) {

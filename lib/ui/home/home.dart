@@ -1,4 +1,5 @@
 import 'package:flight_booking_app/data/model/home_response.dart';
+import 'package:flight_booking_app/ui/booking/transaction_success.dart';
 import 'package:flight_booking_app/ui/home/home_view_model.dart';
 import 'package:flight_booking_app/ui/search/search.dart';
 import 'package:flutter/material.dart';
@@ -354,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: TextStyle(color: Colors.white),
                               ),
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ),
