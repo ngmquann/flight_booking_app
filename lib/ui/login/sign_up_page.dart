@@ -63,10 +63,8 @@ class _SignUpPageState extends State<SignUpPage> {
           textColor: Colors.white,
           fontSize: 18.0,
         );
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
-        );
+
+        Navigator.pop(context);
       } catch (e) {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
 

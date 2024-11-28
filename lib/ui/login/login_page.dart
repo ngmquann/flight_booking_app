@@ -1,9 +1,11 @@
 import 'package:flight_booking_app/data/model/login_request.dart';
 import 'package:flight_booking_app/data/model/login_token.dart';
 import 'package:flight_booking_app/data/repository/token_repository.dart';
+import 'package:flight_booking_app/main.dart';
 import 'package:flight_booking_app/ui/home/home.dart';
 import 'package:flight_booking_app/ui/login/login_view_model.dart';
 import 'package:flight_booking_app/ui/login/sign_up_page.dart';
+import 'package:flight_booking_app/ui/profile/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -50,10 +52,10 @@ class _LoginScreenState extends State<LoginPage> {
 
            await tokenRepository.saveToken(saveToken);
 
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (context) => const HomeScreen()
+                builder: (context) => const MyApp()
             ),
           );
         }
@@ -85,6 +87,25 @@ class _LoginScreenState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: tokenRepository.getToken(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasData && snapshot.data != null) {
+          return ProfileScreen();
+        }
+
+        return buildLoginScreen();
+      },
+    );
+  }
+
+  Widget buildLoginScreen() {
     return Scaffold(
       appBar: AppBar(
         title: const Text(

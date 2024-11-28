@@ -16,7 +16,7 @@ class BookingRepositoryImpl implements BookingRepository {
     TokenRepository tokenRepository = TokenRepository();
     var token = await tokenRepository.getToken();
     String url =
-        'http://10.0.2.2:8081/api/payment/get-info/${flightId.toString()}/${seatClass}';
+        'http://10.0.2.2:8081/api/flight/get-info-flight/${flightId.toString()}/${seatClass}';
     final response = await http.get(Uri.parse(url), headers: {
       'Authorization': 'Bearer $token',
     });

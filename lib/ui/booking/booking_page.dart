@@ -80,7 +80,7 @@ class _BookingPageState extends State<BookingPage> {
                 child: Container(
                   margin: const EdgeInsets.all(20.0),
                   padding: const EdgeInsets.all(12.0),
-                  height: 510,
+                  height: 590,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8.0),
                       color: Colors.white,

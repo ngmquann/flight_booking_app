@@ -209,8 +209,9 @@ class _SearchPageState extends State<SearchPage> {
                     itemCount: flight.length,
                     itemBuilder: (BuildContext context, int index) {
                       final item = flight[index];
+                      
                       Uint8List _bytes =
-                          const Base64Decoder().convert(item.logoAirline);
+                          const Base64Decoder().convert(item.logoAirline.substring(22));
                       return Container(
                         padding: const EdgeInsets.all(16.0),
                         margin: const EdgeInsets.only(

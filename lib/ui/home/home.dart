@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       margin: const EdgeInsets.all(20.0),
                       padding: const EdgeInsets.all(12.0),
-                      height: 470,
+                      height: 500,
                       decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8.0),
                           color: Colors.white,
@@ -336,6 +336,25 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: ElevatedButton(
                               onPressed: () {
                                 if(_formKey.currentState?.validate() ?? false){
+                                  if (departureAirport == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Please select a departure airport')),
+                                    );
+                                    return;
+                                  }
+                                  if (arrivalAirport == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Please select an arrival airport')),
+                                    );
+                                    return;
+                                  }
+                                  if (seatClass == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Please select a seat class')),
+                                    );
+                                    return;
+                                  }
+
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (context) => SearchPage(departureAirport: int.parse(departureAirport!), arrivalAirport: int.parse(arrivalAirport!), departureTime: _dateController.text, seatClass: seatClass!, departCode: departureCode, arriCode: arrivalCode,)),
